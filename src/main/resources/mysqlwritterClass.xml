@@ -1,0 +1,7 @@
+<configuration>
+    <!-- NameNode结点的URI(包括协议、主机名称、端口号) -->
+    <property>
+        <name>mysqlwritterClass</name>
+        <value>com.miao.logmobile.parser.ReduceOutputFormatImpl</value>
+    </property>
+</configuration>
