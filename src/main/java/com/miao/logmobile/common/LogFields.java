@@ -51,4 +51,10 @@ public class LogFields {
     public static final String LOG_OS_NAME = "os_name";
     public static final String LOG_OS_VERSION = "os_version";
 
+
+    public static final long ONE_DAY_TIME = 1000 * 3600 * 24;
+
+    public static final String TASKRUNTIME = "runtime";
+
+
 }

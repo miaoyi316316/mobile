@@ -34,8 +34,18 @@ public class TimeTransform {
         return long2String(date.getTime(), "yyyy-MM-dd");
     }
 
-    public static long getYesterDay(long timestamp){
-        return 0;
+    public static Date getYesterDay(Date today,String parttern){
+
+        Calendar calendar = Calendar.getInstance();
+
+        calendar.setTime(today);
+
+        calendar.add(Calendar.DATE,-1);
+
+        Date date= calendar.getTime();
+
+        return date;
+
     }
 
     /**
@@ -176,6 +186,19 @@ public class TimeTransform {
         return getDateInfo(timestamp,DateTypeEnum.DAY)-(calendar.get(calendar.DAY_OF_WEEK)-2);
 
     }
+
+    /**
+     * 求出给定时间戳所在的小时
+     * @param timestamp
+     * @return
+     */
+    public static int getHourlyByTime(long timestamp){
+
+        String hour = long2String(timestamp, "HH");
+
+        return Integer.valueOf(hour);
+    }
+
 
 
 

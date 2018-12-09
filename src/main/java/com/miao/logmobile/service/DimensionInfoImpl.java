@@ -2,9 +2,12 @@ package com.miao.logmobile.service;
 
 import com.miao.logmobile.common.DateTypeEnum;
 import com.miao.logmobile.parser.modle.dim.base.*;
+import com.miao.logmobile.timeTransform.TimeTransform;
 import com.miao.logmobile.util.PropertiesUtil;
 
 import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,6 +28,66 @@ public class DimensionInfoImpl implements IDimensionInfo {
             return this.size()>MAX_SIZE;
         }
     };
+
+
+    private Map<String,String> memberCache = new LinkedHashMap<String,String>(){
+        @Override
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+            return this.size() > 300;
+        }
+    };
+
+    /**
+     * 判断当前mid是不是老会员
+     * @param mid
+     * @return
+     */
+    @Override
+    public boolean isOldMember(String mid) {
+        if(memberCache.get(mid)!=null){
+            //就是老会员
+            return true;
+        }else {
+           //去查数据库，确保不是老会员
+            try {
+                if(connection==null||connection.isClosed())
+                connection = JDBCService.getConnection();
+
+                ps = connection.prepareStatement("select `member_id` from member_info" +
+                        " where member_id = ?");
+                ps.setString(1,mid);
+
+                rs = ps.executeQuery();
+                if(rs.next()){
+                    //就是老会员
+                    memberCache.put(rs.getString(1), "old");
+                    return true;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        }
+        return false;
+    }
+
+    @Override
+    public int deleteOldMember(String todayTime) {
+        try {
+
+            java.util.Date date = new SimpleDateFormat("yyyy-MM-dd").parse(todayTime);
+
+            ps = connection.prepareStatement("delete from member_info where " +
+            "`created` = ?");
+            ps.setDate(1,new Date(date.getTime()));
+
+            int result = ps.executeUpdate();
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
 
     /**
      * 通过指定维度获得到其在维度表中的id
@@ -170,31 +233,21 @@ public class DimensionInfoImpl implements IDimensionInfo {
 
             selectSql = PropertiesUtil.propertiesReadByKey("br_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("br_insertSql");
-//            selectSql = "select `id` from dimension_browser where `browser_name` = ? and `browser_version`=? limit 1";
-//
-//            insertSql = "insert into dimension_browser(`browser_name`,`browser_version`) values(?,?)";
+
         }else if(dimension instanceof PlatFormDimension){
             selectSql = PropertiesUtil.propertiesReadByKey("pl_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("pl_insertSql");
 
-//            selectSql = "select `id` from dimension_platform where `platform_name` =? limit 1";
-//            insertSql = "insert into dimension_platform(`platform_name`) values(?)";
         }else if(dimension instanceof KpiDimension){
             selectSql = PropertiesUtil.propertiesReadByKey("kpi_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("kpi_insertSql");
 
-//            selectSql = "select `id` from dimension_kpi where `kpi_name` =? limit 1";
-//            insertSql = "insert into dimension_kpi(`kpi_name`) values(?)";
+
         }else if(dimension instanceof DateDimension){
 
             selectSql = PropertiesUtil.propertiesReadByKey("dt_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("dt_insertSql");
-//            selectSql = "select `id` from dimension_date where `year` =? and `season` = ? " +
-//                    " and `month` = ? and `week` = ? and `day` = ? and `calendar` = ? " +
-//                    " and type = ? limit 1";
-//
-//            insertSql = "insert into dimension_date(`year`,`season`,`month`,`week`,`day`," +
-//                    "`calendar`,`type`) values(?,?,?,?,?,?,?)";
+
 
         }else {
             return null;
