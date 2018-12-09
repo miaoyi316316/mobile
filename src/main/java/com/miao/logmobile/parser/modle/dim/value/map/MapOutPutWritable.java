@@ -32,6 +32,19 @@ public class MapOutPutWritable extends StatsBaseOutputDimension {
         this.sessionTime = sessionTime;
     }
 
+    public MapOutPutWritable(){
+        super();
+    }
+
+    public MapOutPutWritable(String id, long sessionTime) {
+        this.id = id;
+        this.sessionTime = sessionTime;
+    }
+
+    public MapOutPutWritable(String id) {
+        this.id = id;
+    }
+
     @Override
     public KpiTypeEnum getKpiTypeName() {
         return null;

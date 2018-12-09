@@ -1,10 +1,11 @@
-package com.miao.logmobile.parser.mr;
+package com.miao.logmobile.parser.pv_mr;
 
-import com.miao.logmobile.etl.etlDimension.LogDimension;
-import com.miao.logmobile.etl.etlMapReduce.EtlMapper;
 import com.miao.logmobile.etl.etlMapReduce.EtlRunner;
 import com.miao.logmobile.etl.util.InitFileSystem;
 import com.miao.logmobile.parser.MysqlOutputFormat;
+import com.miao.logmobile.parser.active_mr.ActiveUserMapper;
+import com.miao.logmobile.parser.active_mr.ActiveUserReducer;
+import com.miao.logmobile.parser.active_mr.ActiveUserRunner;
 import com.miao.logmobile.parser.modle.dim.keys.StatsUserDimension;
 import com.miao.logmobile.parser.modle.dim.value.map.MapOutPutWritable;
 import com.miao.logmobile.parser.modle.dim.value.reduce.ReduceOutputWritable;
@@ -13,25 +14,23 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
+public class PvRunner implements Tool {
 
-public class NewUserRunner implements Tool {
 
-    private static final Logger logger = Logger.getLogger(EtlRunner.class);
+    private static final Logger logger = Logger.getLogger(PvRunner.class);
     private final String TASKRUNTIME = "runtime";
     private Configuration conf = null;
 
     public static void main(String[] args) {
 
         try {
-            int status = ToolRunner.run(new NewUserRunner(), args);
+            int status = ToolRunner.run(new PvRunner(), args);
 
             System.exit(status);
         } catch (Exception e) {
@@ -46,13 +45,13 @@ public class NewUserRunner implements Tool {
 
         setArgs(args,configuration);
 
-        Job job = Job.getInstance(conf, "new user");
+        Job job = Job.getInstance(conf, "pv");
 
         job.setJarByClass(getClass());
 
         job.setNumReduceTasks(4);
 
-        job.setMapperClass(NewUserValueMapper.class);
+        job.setMapperClass(PvMapper.class);
 
         job.setMapOutputKeyClass(StatsUserDimension.class);
 
@@ -62,10 +61,9 @@ public class NewUserRunner implements Tool {
         FileSystem fs = InitFileSystem.getFileSystem();
 
 
-
         FileInputFormat.addInputPath(job,setInputAndOutput(job));
 
-        job.setReducerClass(NewUserValueReducer.class);
+        job.setReducerClass(PvReducer.class);
         job.setOutputKeyClass(StatsUserDimension.class);
         job.setOutputValueClass(ReduceOutputWritable.class);
 
@@ -96,7 +94,6 @@ public class NewUserRunner implements Tool {
      * @return
      */
     private Path setInputAndOutput(Job job){
-
 
 
         String[] date = job.getConfiguration().get(TASKRUNTIME).split("-");
@@ -135,5 +132,4 @@ public class NewUserRunner implements Tool {
         }
 
     }
-
 }

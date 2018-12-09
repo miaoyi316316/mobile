@@ -32,8 +32,8 @@ public class KpiDimension extends BaseDimension {
     }
 
 
-    public KpiDimension(int id, String kpiName) {
-        this.id = id;
+    public KpiDimension( String kpiName) {
+
         this.kpiName = kpiName;
     }
 

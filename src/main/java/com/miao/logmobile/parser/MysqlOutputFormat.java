@@ -73,7 +73,6 @@ public class MysqlOutputFormat extends OutputFormat<StatsBaseDimension,StatsBase
                 throw new RuntimeException("传入到writer的参数异常");
             }
 
-
             KpiTypeEnum kpiTypeEnum = value.getKpiTypeName();
 
             try {
@@ -102,6 +101,8 @@ public class MysqlOutputFormat extends OutputFormat<StatsBaseDimension,StatsBase
                 }
 
                 iReduceOutputFormat.buildInsertPs(new DimensionInfoImpl(),key,value,ps);
+
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -115,9 +116,9 @@ public class MysqlOutputFormat extends OutputFormat<StatsBaseDimension,StatsBase
 
                     connection.commit();
 
-                    this.cache.get(kpiTypeEnum).clearBatch();
+                    this.cache.remove(kpiTypeEnum);
 
-                    this.batch.put(kpiTypeEnum,0);
+                    this.batch.remove(kpiTypeEnum);
 
                 } catch (SQLException e) {
                     e.printStackTrace();
@@ -136,6 +137,7 @@ public class MysqlOutputFormat extends OutputFormat<StatsBaseDimension,StatsBase
                     cacheEntry.getValue().executeBatch();
 
                     connection.commit();
+
                     cacheEntry.getValue().close();
 
                 } catch (SQLException e) {
@@ -143,6 +145,7 @@ public class MysqlOutputFormat extends OutputFormat<StatsBaseDimension,StatsBase
                 }
 
             }
+            if (connection!=null)
             JDBCService.colseAll(connection,null,null);
 
         }

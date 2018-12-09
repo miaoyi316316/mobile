@@ -1,4 +1,4 @@
-package com.miao.logmobile.parser.mr;
+package com.miao.logmobile.parser.newuser_mr;
 
 import com.miao.logmobile.common.DateTypeEnum;
 import com.miao.logmobile.common.EventEnum;
@@ -10,14 +10,12 @@ import com.miao.logmobile.parser.modle.dim.base.KpiDimension;
 import com.miao.logmobile.parser.modle.dim.base.PlatFormDimension;
 import com.miao.logmobile.parser.modle.dim.keys.StatsUserDimension;
 import com.miao.logmobile.parser.modle.dim.value.map.MapOutPutWritable;
-import com.miao.logmobile.service.DimensionInfoImpl;
-import com.miao.logmobile.service.IDimensionInfo;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
 
-import java.io.DataInput;
 import java.io.IOException;
 
 public class NewUserValueMapper extends Mapper<LongWritable,Text,StatsUserDimension,MapOutPutWritable> {
@@ -63,7 +61,7 @@ public class NewUserValueMapper extends Mapper<LongWritable,Text,StatsUserDimens
         String userId = dimensions[15];
         outputValue.setId(userId);
         //uid为null没要统计 直接pass
-        if(userId==null){
+        if(StringUtils.isEmpty(userId)){
             filterRecord++;
             return;
         }
@@ -87,10 +85,11 @@ public class NewUserValueMapper extends Mapper<LongWritable,Text,StatsUserDimens
         //浏览器维度
         String browseName = dimensions[9];
         String browseVersion = dimensions[10];
-        browseDimension = new BrowseDimension(browseName, browseVersion);
-        outputKey = new StatsUserDimension(statsCommonDimension, browseDimension);
-        context.write(outputKey,outputValue);
-
+        if(!StringUtils.isEmpty(browseName)&&!StringUtils.isEmpty(browseVersion)){
+            browseDimension = new BrowseDimension(browseName, browseVersion);
+            outputKey = new StatsUserDimension(statsCommonDimension, browseDimension);
+            context.write(outputKey,outputValue);
+        }
 
 
         //***********************定义仅有new_user指标时候的封装****************************

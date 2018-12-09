@@ -3,40 +3,42 @@ package com.miao.logmobile.parser;
 
 import com.miao.logmobile.common.KpiTypeEnum;
 import com.miao.logmobile.parser.modle.dim.StatsBaseDimension;
+import com.miao.logmobile.parser.modle.dim.base.KpiDimension;
 import com.miao.logmobile.parser.modle.dim.keys.StatsUserDimension;
 import com.miao.logmobile.parser.modle.dim.value.StatsBaseOutputDimension;
 import com.miao.logmobile.parser.modle.dim.value.reduce.ReduceOutputWritable;
 import com.miao.logmobile.service.IDimensionInfo;
+import com.miao.logmobile.service.JDBCService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.Map;
 
 public class ReduceOutputFormatImpl implements IReduceOutputFormat{
+
+    private PreparedStatement ps;//用于插入会员表
 
 
     @Override
     public String buildInsertSql(KpiTypeEnum kpiTypeEnum, Configuration conf) {
 
-        if(KpiTypeEnum.NEW_USER.equals(kpiTypeEnum)){
+        if(KpiTypeEnum.HOURLY_SESSIONS.equals(kpiTypeEnum)
+                ||KpiTypeEnum.HOURLY_SESSIONS_LENGTH.equals(kpiTypeEnum)){
+            return conf.get(KpiTypeEnum.HOURLY_ACTIVE_USER.getKpiType());
 
-            return conf.get("insert_new_user");
-        }else if(KpiTypeEnum.BROWSE_NEW_USER.equals(kpiTypeEnum)){
-            return conf.get("insert_browser_new_user");
         }
-
-        return null;
+        return conf.get(kpiTypeEnum.getKpiType());
     }
 
     @Override
-    public void buildInsertPs(IDimensionInfo iDimensionInfo,StatsBaseDimension key, StatsBaseOutputDimension value, PreparedStatement ps) {
+    public void buildInsertPs(IDimensionInfo iDimensionInfo, StatsBaseDimension key, StatsBaseOutputDimension value, PreparedStatement ps) {
 
-        if(key==null||value==null){
+        if (key == null || value == null) {
 
-            throw new RuntimeException("传入的key或者value为kong");
+            throw new RuntimeException("传入的key或者value为空");
         }
 
         StatsUserDimension realKey = (StatsUserDimension) key;
@@ -50,63 +52,178 @@ public class ReduceOutputFormatImpl implements IReduceOutputFormat{
 
         int platFormId = iDimensionInfo.getDimensionIdByDim(realKey.getStatsCommmonDimension().getPlatFormDimension());
 
-        if(dateId==-1||platFormId==-1){
+        iDimensionInfo.getDimensionIdByDim(new KpiDimension(kpi.getKpiType()));
+
+        if (dateId == -1 || platFormId == -1) {
             throw new RuntimeException("dateId和platFormId为null，不能插入");
         }
-        if(KpiTypeEnum.NEW_USER.equals(kpi)){
-            int new_install_users = ((IntWritable)realValue.getValue().get(new Text(kpi.getKpiType()))).get();
+        if (KpiTypeEnum.NEW_MEMBER.equals(kpi)||KpiTypeEnum.NEW_USER.equals(kpi) || KpiTypeEnum.ACTION_USER.equals(kpi)||KpiTypeEnum.ACTION_MEMBER.equals(kpi)) {
+            int users = ((IntWritable) realValue.getValue().get(new IntWritable(-1))).get();
             //ps 赋值
-
-            System.out.println(dateId+" "+platFormId+" "+new_install_users);
             int i = 0;
             try {
-                ps.setInt(++i,dateId);
-                ps.setInt(++i,platFormId);
-                ps.setInt(++i,new_install_users);
+
+                ps.setInt(++i, dateId);
+                ps.setInt(++i, platFormId);
+                ps.setInt(++i, users);
+                ps.setDate(++i, new Date(new java.util.Date().getTime()));
+                ps.setInt(++i, users);
+                ps.addBatch();
+                if(KpiTypeEnum.NEW_MEMBER.equals(kpi))
+                    insertMemberInfo(realKey,realValue);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        } else if (KpiTypeEnum.BROWSE_NEW_MEMBER.equals(kpi)||KpiTypeEnum.BROWSE_NEW_USER.equals(kpi) || KpiTypeEnum.ACTION_BROWSE_USER.equals(kpi)||KpiTypeEnum.BROWSE_ACTION_MEMBER.equals(kpi)) {
+
+            int browserId = iDimensionInfo.getDimensionIdByDim(realKey.getBrowseDimension());
+
+            if (browserId == -1) {
+                throw new RuntimeException("browserId为null，不能插入");
+            }
+            int users = ((IntWritable) realValue.getValue().get(new IntWritable(-1))).get();
+            //ps 赋值
+
+            int i = 0;
+            try {
+                ps.setInt(++i, dateId);
+                ps.setInt(++i, platFormId);
+                ps.setInt(++i, browserId);
+                ps.setInt(++i, users);
                 ps.setDate(++i,new Date(new java.util.Date().getTime()));
-                ps.setInt(++i,new_install_users);
+                ps.setInt(++i, users);
+                ps.addBatch();
+                if(KpiTypeEnum.BROWSE_NEW_MEMBER.equals(kpi))
+                    insertMemberInfo(realKey,realValue);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        }else if(KpiTypeEnum.SESSION.equals(kpi)){
+            int sessionCount = ((IntWritable) realValue.getValue().get(new IntWritable(-1))).get();
+            int sessionTime = ((IntWritable) realValue.getValue().get(new IntWritable(0))).get();
+            int i = 0;
+            try {
+                ps.setInt(++i, dateId);
+                ps.setInt(++i, platFormId);
+                ps.setInt(++i, sessionCount);
+                ps.setInt(++i, sessionTime);
+                ps.setDate(++i, new Date(new java.util.Date().getTime()));
+                ps.setInt(++i,sessionCount);
+                ps.setInt(++i,sessionTime);
                 ps.addBatch();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
 
-        }else if(KpiTypeEnum.BROWSE_NEW_USER.equals(kpi)){
+        }else if(KpiTypeEnum.BROWSE_SESSION.equals(kpi)){
+            int browserId = iDimensionInfo.getDimensionIdByDim(realKey.getBrowseDimension());
+            if(browserId==-1){
+                throw new RuntimeException("browserId为null，不能插入");
+            }
+            int sessionCount = ((IntWritable) realValue.getValue().get(new IntWritable(-1))).get();
+            int sessionTime = ((IntWritable) realValue.getValue().get(new IntWritable(0))).get();
+            int i = 0;
+            try {
+                ps.setInt(++i, dateId);
+                ps.setInt(++i, platFormId);
+                ps.setInt(++i,browserId);
+                ps.setInt(++i, sessionCount);
+                ps.setInt(++i, sessionTime);
+                ps.setDate(++i, new Date(new java.util.Date().getTime()));
+                ps.setInt(++i,sessionCount);
+                ps.setInt(++i,sessionTime);
+                ps.addBatch();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }else if(KpiTypeEnum.BRWOSE_PV.equals(kpi)){
 
             int browserId = iDimensionInfo.getDimensionIdByDim(realKey.getBrowseDimension());
             if(browserId==-1){
                 throw new RuntimeException("browserId为null，不能插入");
             }
-            int new_install_users = ((IntWritable)realValue.getValue().get(new Text(kpi.getKpiType()))).get();
-            //ps 赋值
+            int pvCount = ((IntWritable) realValue.getValue().get(new IntWritable(-1))).get();
 
             int i = 0;
             try {
-                ps.setInt(++i,dateId);
-                ps.setInt(++i,platFormId);
+                ps.setInt(++i, dateId);
+                ps.setInt(++i, platFormId);
                 ps.setInt(++i,browserId);
-                ps.setInt(++i,new_install_users);
-                ps.setDate(++i,new Date(new java.util.Date().getTime()));
-                ps.setInt(++i,new_install_users);
+                ps.setInt(++i, pvCount);
+                ps.setDate(++i, new Date(new java.util.Date().getTime()));
+                ps.setInt(++i,pvCount);
                 ps.addBatch();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        }else if(KpiTypeEnum.HOURLY_ACTIVE_USER.equals(kpi)||KpiTypeEnum.HOURLY_SESSIONS.equals(kpi)||KpiTypeEnum.HOURLY_SESSIONS_LENGTH.equals(kpi)){
+            int kpiId = iDimensionInfo.getDimensionIdByDim(realKey.getStatsCommmonDimension().getKpiDimension());
 
-        } else if (KpiTypeEnum.NEW_ALL_USER.equals(kpi)) {
+            try {
+                int i = 0;
+                ps.setInt(++i,platFormId);
+                ps.setInt(++i,dateId);
+                ps.setInt(++i,kpiId);
 
+                for (Map.Entry<Writable, Writable> entry : realValue.getValue().entrySet()) {
+
+                    int hour = ((IntWritable) entry.getKey()).get();
+                    int count= ((IntWritable) entry.getValue()).get();
+                    ps.setInt(hour+4,count);
+
+                    ps.setInt(hour+4+25,count);
+                }
+                ps.setDate(28,new Date(new java.util.Date().getTime()));
+
+                ps.addBatch();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }else {
+            throw new RuntimeException("kpi类型不匹配");
         }
 
     }
 
-    @Override
-    public void buildSelectPs(IDimensionInfo iDimensionInfo, StatsBaseDimension key, StatsBaseOutputDimension value, PreparedStatement ps) {
+    private void insertMemberInfo(StatsUserDimension key,ReduceOutputWritable value){
+        Connection connection = JDBCService.getConnection();
 
+        java.util.Date last_visit = key.getStatsCommmonDimension().getDateDimension().getCalendar();
+
+        try {
+
+            connection.setAutoCommit(false);
+
+            if(this.ps==null||ps.isClosed()) {
+                this.ps = connection.prepareStatement("insert " +
+                        "into member_info(`member_id`,`last_visit_date`,`created`) values (?,?,?)" +
+                        " on duplicate key update `created` = ?");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        String[] mids = ((Text) value.getValue().get(new IntWritable(0))).toString().split("\t");
+
+        try {
+            for(String mid:mids){
+                this.ps.setString(1,mid);
+                this.ps.setDate(2,new Date(last_visit.getTime()));
+                this.ps.setDate(3,new Date(new java.util.Date().getTime()));
+                this.ps.setDate(4,new Date(new java.util.Date().getTime()));
+                this.ps.addBatch();
+            }
+            this.ps.executeBatch();
+            connection.commit();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
 
     }
 
-    @Override
-    public String buildSelectSql(KpiTypeEnum kpiTypeEnum, Configuration conf) {
-        return null;
-    }
+
 }
