@@ -212,6 +212,15 @@ public class DimensionInfoImpl implements IDimensionInfo {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        }else if(dimension instanceof LocationDimension){
+            LocationDimension locationDimension = (LocationDimension) dimension;
+            try {
+                ps.setString(++i,locationDimension.getCountry());
+                ps.setString(++i,locationDimension.getProvince());
+                ps.setString(++i,locationDimension.getCity());
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }else {
             throw new RuntimeException("preparedStatement构建失败，可能该维度不存在");
         }
@@ -248,7 +257,9 @@ public class DimensionInfoImpl implements IDimensionInfo {
             selectSql = PropertiesUtil.propertiesReadByKey("dt_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("dt_insertSql");
 
-
+        }else if(dimension instanceof LocationDimension){
+            selectSql = PropertiesUtil.propertiesReadByKey("loc_selectSql");
+            insertSql = PropertiesUtil.propertiesReadByKey("loc_insertSql");
         }else {
             return null;
         }
@@ -288,6 +299,12 @@ public class DimensionInfoImpl implements IDimensionInfo {
             cacheKey.append("kpi_")
                     .append(kpiDimension.getKpiName());
 
+        }else if(dimension instanceof LocationDimension){
+            LocationDimension locationDimension = (LocationDimension) dimension;
+            cacheKey.append("loc_")
+                    .append(locationDimension.getCountry()+"_")
+                    .append(locationDimension.getProvince()+"_")
+                    .append(locationDimension.getCity());
         }else {
             return null;
         }

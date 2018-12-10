@@ -20,6 +20,9 @@ public class PlatFormDimension extends BaseDimension {
 
     }
 
+    public PlatFormDimension(String platFormName) {
+        this.platFormName = platFormName;
+    }
 
     @Override
     public int compareTo(BaseDimension o) {

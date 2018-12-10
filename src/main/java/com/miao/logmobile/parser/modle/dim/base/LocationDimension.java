@@ -85,9 +85,26 @@ public class LocationDimension extends BaseDimension {
         if(this==o){
             return 0;
         }
-//        int temp =
+        LocationDimension other = (LocationDimension) o;
+        int temp = this.id - other.id;
+        if(temp!=0){
+            return temp;
+        }else {
+            temp = this.country.compareTo(other.country);
+            if(temp!=0){
+                return temp;
+            }else {
+                temp = this.province.compareTo(other.province);
+                if(temp!=0){
+                    return temp;
 
-        return 0;
+                }else {
+                    temp = this.city.compareTo(other.city);
+                    return temp;
+                }
+            }
+        }
+
     }
 
     @Override

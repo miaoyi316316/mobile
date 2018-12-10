@@ -64,16 +64,32 @@ public class StatsLocationDimension extends StatsBaseDimension {
 
     @Override
     public int compareTo(StatsBaseDimension o) {
-        return 0;
+        if(this==o){
+            return 0;
+        }
+        StatsLocationDimension other = (StatsLocationDimension) o;
+
+        int temp = this.statsCommonDimension.compareTo(other.statsCommonDimension);
+        if(temp!=0){
+            return temp;
+        }else {
+            return this.locationDimension.compareTo(other.locationDimension);
+        }
+
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
 
+        this.statsCommonDimension.write(out);
+        this.locationDimension.write(out);
     }
 
     @Override
     public void readFields(DataInput in) throws IOException {
 
+        this.statsCommonDimension.readFields(in);
+        this.locationDimension.readFields(in);
     }
+
 }
