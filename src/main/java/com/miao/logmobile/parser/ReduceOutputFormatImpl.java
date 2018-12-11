@@ -4,6 +4,7 @@ package com.miao.logmobile.parser;
 import com.miao.logmobile.common.KpiTypeEnum;
 import com.miao.logmobile.parser.modle.dim.StatsBaseDimension;
 import com.miao.logmobile.parser.modle.dim.base.KpiDimension;
+import com.miao.logmobile.parser.modle.dim.keys.StatsLocationDimension;
 import com.miao.logmobile.parser.modle.dim.keys.StatsUserDimension;
 import com.miao.logmobile.parser.modle.dim.value.StatsBaseOutputDimension;
 import com.miao.logmobile.parser.modle.dim.value.reduce.ReduceOutputWritable;
@@ -41,11 +42,51 @@ public class ReduceOutputFormatImpl implements IReduceOutputFormat{
             throw new RuntimeException("传入的key或者value为空");
         }
 
-        StatsUserDimension realKey = (StatsUserDimension) key;
+
+
+
 
         ReduceOutputWritable realValue = (ReduceOutputWritable) value;
 
         KpiTypeEnum kpi = realValue.getKpiTypeName();
+        if(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.equals(kpi)){
+
+            StatsLocationDimension realK = (StatsLocationDimension) key;
+
+            int dateId = iDimensionInfo.getDimensionIdByDim(realK.getStatsCommonDimension().getDateDimension());
+
+            int platFormId = iDimensionInfo.getDimensionIdByDim(realK.getStatsCommonDimension().getPlatFormDimension());
+
+            iDimensionInfo.getDimensionIdByDim(new KpiDimension(kpi.getKpiType()));
+
+            int locationId = iDimensionInfo.getDimensionIdByDim(realK.getLocationDimension());
+
+            int activeUsers = ((IntWritable) realValue.getValue().get(new IntWritable(1))).get();
+            int sessions = ((IntWritable) realValue.getValue().get(new IntWritable(2))).get();
+            int bounce_sessions = ((IntWritable) realValue.getValue().get(new IntWritable(3))).get();
+
+            int i = 0;
+            try {
+                ps.setInt(++i,dateId);
+                ps.setInt(++i,platFormId);
+                ps.setInt(++i,locationId);
+                ps.setInt(++i,activeUsers);
+                ps.setInt(++i,sessions);
+                ps.setInt(++i,bounce_sessions);
+                ps.setDate(++i,new Date(new java.util.Date().getTime()));
+                ps.setInt(++i,activeUsers);
+                ps.setInt(++i,sessions);
+                ps.setInt(++i,bounce_sessions);
+                ps.addBatch();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return;
+
+        }
+
+        StatsUserDimension realKey = (StatsUserDimension) key;
+
 
         //公共维度
         int dateId = iDimensionInfo.getDimensionIdByDim(realKey.getStatsCommmonDimension().getDateDimension());
@@ -221,7 +262,6 @@ public class ReduceOutputFormatImpl implements IReduceOutputFormat{
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
 
     }
 

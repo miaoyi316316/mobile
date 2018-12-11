@@ -1,6 +1,7 @@
 package com.miao.logmobile.parser.location_mr;
 
 import com.miao.logmobile.common.DateTypeEnum;
+import com.miao.logmobile.common.EventEnum;
 import com.miao.logmobile.common.KpiTypeEnum;
 import com.miao.logmobile.parser.active_mr.ActiveUserMapper;
 import com.miao.logmobile.parser.modle.dim.StatsCommonDimension;
@@ -19,7 +20,7 @@ import java.io.IOException;
 
 public class LocationMapper extends Mapper<LongWritable,Text,StatsLocationDimension,MapOutPutWritable> {
 
-    private static final Logger logger = Logger.getLogger(ActiveUserMapper.class);
+    private static final Logger logger = Logger.getLogger(LocationMapper.class);
 
     private long inputRecords = 0;
     private long filterRecords = 0;
@@ -42,6 +43,12 @@ public class LocationMapper extends Mapper<LongWritable,Text,StatsLocationDimens
 
         String[] dimensions = value.toString().split("\\u0001");
 
+        EventEnum en = EventEnum.valuesOf(dimensions[5]);
+
+        if (!EventEnum.PAGE_VIEW.equals(en)) {
+            filterRecords++;
+            return;
+        }
 
         //用户userId,用于封装outputValue
         outputValue = new MapOutPutWritable();
@@ -59,14 +66,7 @@ public class LocationMapper extends Mapper<LongWritable,Text,StatsLocationDimens
             return;
         }
 
-        //获得session的建立时间
-        String sessionTime = dimensions[19];
-        if(StringUtils.isEmpty(sessionTime)){
-            filterRecords++;
-            return;
-        }
         outputValue.setId(userId+":"+sessionId);
-        outputValue.setSessionTime(Long.valueOf(sessionTime));
 
         String country = dimensions[2];
         String province = dimensions[3];
@@ -84,13 +84,51 @@ public class LocationMapper extends Mapper<LongWritable,Text,StatsLocationDimens
         platFormDimension.setPlatFormName(platFormName);
 
 
-        //******************************国家级别all平台***********************
+        //******************************市级别指定平台，***********************
         kpiDimension = new KpiDimension(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.getKpiType());
-        statsCommonDimension = new StatsCommonDimension(dateDimension,new PlatFormDimension(""), kpiDimension);
-        locationDimension = new LocationDimension(country, "", "");
+        statsCommonDimension = new StatsCommonDimension(dateDimension,platFormDimension, kpiDimension);
+        locationDimension = new LocationDimension(country, province, city);
+        outputKey = new StatsLocationDimension(statsCommonDimension, locationDimension);
+        context.write(outputKey,outputValue);
+        outputRecords++;
+        //******************************国家级别，指定平台
+        kpiDimension = new KpiDimension(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.getKpiType());
+        statsCommonDimension = new StatsCommonDimension(dateDimension,platFormDimension, kpiDimension);
+        locationDimension = new LocationDimension(country, "unknown", "unknown");
+        outputKey = new StatsLocationDimension(statsCommonDimension, locationDimension);
+        context.write(outputKey,outputValue);
+        outputRecords++;
+        //*********************************省级别指定平台
+        kpiDimension = new KpiDimension(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.getKpiType());
+        statsCommonDimension = new StatsCommonDimension(dateDimension,platFormDimension, kpiDimension);
+        locationDimension = new LocationDimension(country, province, "unknown");
+        outputKey = new StatsLocationDimension(statsCommonDimension, locationDimension);
+        context.write(outputKey,outputValue);
+        outputRecords++;
+        //*************************国家级别不指定平台
+        kpiDimension = new KpiDimension(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.getKpiType());
+        platFormDimension = new PlatFormDimension();
+        platFormDimension.setPlatFormName("all");
+        statsCommonDimension = new StatsCommonDimension(dateDimension,platFormDimension, kpiDimension);
+        locationDimension = new LocationDimension(country, "unknown", "unknown");
+        outputKey = new StatsLocationDimension(statsCommonDimension, locationDimension);
+        context.write(outputKey,outputValue);
+        outputRecords++;
+        //*************************省级别不指定平台
+        kpiDimension = new KpiDimension(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.getKpiType());
+        statsCommonDimension = new StatsCommonDimension(dateDimension,platFormDimension, kpiDimension);
+        locationDimension = new LocationDimension(country, province, "unknown");
+        outputKey = new StatsLocationDimension(statsCommonDimension, locationDimension);
+        context.write(outputKey,outputValue);
+        outputRecords++;
+        //**************************市级别不指定平台
+        kpiDimension = new KpiDimension(KpiTypeEnum.LOCATION_ACTIVE_SESSION_LEAP.getKpiType());
+        statsCommonDimension = new StatsCommonDimension(dateDimension,platFormDimension, kpiDimension);
+        locationDimension = new LocationDimension(country, province, city);
         outputKey = new StatsLocationDimension(statsCommonDimension, locationDimension);
         context.write(outputKey,outputValue);
 
+        outputRecords++;
 
 
 

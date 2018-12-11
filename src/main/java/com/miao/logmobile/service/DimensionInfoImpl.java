@@ -221,6 +221,14 @@ public class DimensionInfoImpl implements IDimensionInfo {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
+        }else if(dimension instanceof EventDimension){
+            EventDimension eventDimension = (EventDimension) dimension;
+            try {
+                ps.setString(++i,eventDimension.getCategory());
+                ps.setString(++i,eventDimension.getAction());
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }else {
             throw new RuntimeException("preparedStatement构建失败，可能该维度不存在");
         }
@@ -251,7 +259,6 @@ public class DimensionInfoImpl implements IDimensionInfo {
             selectSql = PropertiesUtil.propertiesReadByKey("kpi_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("kpi_insertSql");
 
-
         }else if(dimension instanceof DateDimension){
 
             selectSql = PropertiesUtil.propertiesReadByKey("dt_selectSql");
@@ -260,6 +267,9 @@ public class DimensionInfoImpl implements IDimensionInfo {
         }else if(dimension instanceof LocationDimension){
             selectSql = PropertiesUtil.propertiesReadByKey("loc_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("loc_insertSql");
+        }else if(dimension instanceof EventDimension){
+            selectSql = PropertiesUtil.propertiesReadByKey("event_selectSql");
+            insertSql = PropertiesUtil.propertiesReadByKey("event_insertSql");
         }else {
             return null;
         }
@@ -305,6 +315,11 @@ public class DimensionInfoImpl implements IDimensionInfo {
                     .append(locationDimension.getCountry()+"_")
                     .append(locationDimension.getProvince()+"_")
                     .append(locationDimension.getCity());
+        }else if(dimension instanceof EventDimension){
+            EventDimension eventDimension = (EventDimension) dimension;
+            cacheKey.append("event_")
+                    .append(eventDimension.getCategory() + "_")
+                    .append(eventDimension.getAction());
         }else {
             return null;
         }
