@@ -229,7 +229,22 @@ public class DimensionInfoImpl implements IDimensionInfo {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-        }else {
+        }else if(dimension instanceof PaymentDimension){
+            PaymentDimension paymentDimension = (PaymentDimension) dimension;
+            try {
+                ps.setString(++i,paymentDimension.getPayment_type());
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }else if(dimension instanceof CurrencyDimension){
+            CurrencyDimension currencyDimension = (CurrencyDimension) dimension;
+            try {
+                ps.setString(++i,currencyDimension.getCurrency_name());
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
             throw new RuntimeException("preparedStatement构建失败，可能该维度不存在");
         }
 
@@ -270,7 +285,14 @@ public class DimensionInfoImpl implements IDimensionInfo {
         }else if(dimension instanceof EventDimension){
             selectSql = PropertiesUtil.propertiesReadByKey("event_selectSql");
             insertSql = PropertiesUtil.propertiesReadByKey("event_insertSql");
-        }else {
+        }else if(dimension instanceof PaymentDimension){
+            selectSql = PropertiesUtil.propertiesReadByKey("pay_selectSql");
+            insertSql = PropertiesUtil.propertiesReadByKey("pay_insertSql");
+        }else if(dimension instanceof CurrencyDimension){
+            selectSql = PropertiesUtil.propertiesReadByKey("currency_selectSql");
+            insertSql = PropertiesUtil.propertiesReadByKey("currency_insertSql");
+        }
+        else {
             return null;
         }
 
@@ -320,6 +342,15 @@ public class DimensionInfoImpl implements IDimensionInfo {
             cacheKey.append("event_")
                     .append(eventDimension.getCategory() + "_")
                     .append(eventDimension.getAction());
+        }else if(dimension instanceof PaymentDimension){
+            PaymentDimension paymentDimension = (PaymentDimension) dimension;
+            cacheKey.append("pay_")
+                    .append(paymentDimension.getPayment_type());
+
+        }else if(dimension instanceof CurrencyDimension){
+            CurrencyDimension currencyDimension = (CurrencyDimension) dimension;
+            cacheKey.append("currency_")
+                    .append(currencyDimension.getCurrency_name());
         }else {
             return null;
         }
