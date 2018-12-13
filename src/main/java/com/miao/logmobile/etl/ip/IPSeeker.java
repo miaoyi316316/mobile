@@ -1,9 +1,10 @@
 package com.miao.logmobile.etl.ip;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
+
+import java.io.*;
+
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.hadoop.conf.*;
+import org.apache.hadoop.fs.Path;
 /** */
 /**
  * * 用来读取QQwry.dat文件，以根据ip获得好友位置，QQwry.dat的格式是 一. 文件头，共8字节 1. 第一个起始IP的绝对偏移， 4字节
@@ -51,16 +54,23 @@ public class IPSeeker {
     /**
      * 私有构造函数
      */
-    protected IPSeeker() {
+    protected IPSeeker(Configuration conf) {
         ipCache = new Hashtable();
         loc = new IPLocation();
         buf = new byte[100];
         b4 = new byte[4];
         b3 = new byte[3];
         try {
-            String ipFilePath = IPSeeker.class.getResource("/qqwry.dat").getFile();
+
+//            String ipFilePath = IPSeeker.class.getResource("qqwry.dat").getFile();
+//            String ipFilePath = Thread.currentThread().getContextClassLoader().getSystemResource("/qqwry.dat").getFile();
+
+            Path[] paths = DistributedCache.getLocalCacheFiles(conf);
+
+            String ipFilePath = paths[0].toString();
             ipFile = new RandomAccessFile(ipFilePath, "r");
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
+
             System.out.println("IP地址信息文件没有找到，IP显示功能将无法使用");
             ipFile = null;
 
@@ -85,9 +95,9 @@ public class IPSeeker {
     /**
      * @return 单一实例
      */
-    public static IPSeeker getInstance() {
+    public static IPSeeker getInstance(Configuration conf) {
         if (instance == null) {
-            instance = new IPSeeker();
+            instance = new IPSeeker(conf);
         }
         return instance;
     }
