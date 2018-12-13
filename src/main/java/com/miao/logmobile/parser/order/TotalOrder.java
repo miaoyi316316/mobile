@@ -1,6 +1,7 @@
 package com.miao.logmobile.parser.order;
 
 import com.miao.logmobile.common.DateTypeEnum;
+import com.miao.logmobile.common.LogFields;
 import com.miao.logmobile.parser.modle.dim.base.DateDimension;
 import com.miao.logmobile.service.DimensionInfoImpl;
 import com.miao.logmobile.service.IDimensionInfo;
@@ -22,7 +23,26 @@ public class TotalOrder {
 
     public static void main(String[] args) {
         TotalOrder totalOrder = new TotalOrder();
-        totalOrder.totalOrder("2017-07-04");
+
+        String date = null;
+
+        for(int i=0;i<args.length;i++){
+            if(args[i].equals("-d")){
+
+                if(i+1<args.length){
+                    date = args[i + 1];
+                    break;
+                }
+
+            }
+        }
+        if(StringUtils.isEmpty(date)){
+
+            date = TimeTransform.getYestarday();
+
+        }
+        totalOrder.totalOrder(date);
+
     }
     public void totalOrder(String date){
 
