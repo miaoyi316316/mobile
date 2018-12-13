@@ -6,6 +6,7 @@ import com.miao.logmobile.etl.util.InitFileSystem;
 import com.miao.logmobile.timeTransform.TimeTransform;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -18,6 +19,8 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
 
 
 public class EtlRunner implements Tool {
@@ -31,7 +34,6 @@ public class EtlRunner implements Tool {
         try {
             int status = ToolRunner.run(new EtlRunner(), args);
 
-            System.exit(status);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -42,9 +44,15 @@ public class EtlRunner implements Tool {
 
         Configuration configuration = getConf();
 
+
         setArgs(args,configuration);
 
-        Job job = Job.getInstance(conf, "logToHdfs");
+        Path path = new Path("hdfs://hello:8020/mobile_logs/oozie/qqwry.dat");
+        DistributedCache.addCacheFile(path.toUri(),configuration);
+
+//        configuration.addResource("hdfs://hello:8020/mobile_logs/oozie/qqwry.dat");
+        Job job = Job.getInstance(configuration, "logToHdfs");
+
 
         job.setJarByClass(getClass());
 

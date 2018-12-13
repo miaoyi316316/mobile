@@ -47,7 +47,7 @@ public class EtlMapper extends Mapper<LongWritable,Text,LogDimension,NullWritabl
         inputRecord++;
         String log = value.toString();
 
-        map = LogParser.getInfoMap(log);
+        map = LogParser.getInfoMap(log,context.getConfiguration());
 
         if(map==null){
             filterRecoder++;
